@@ -1,7 +1,7 @@
 import axios from "axios";
-import {SignupData} from "../Types/types"
+import {SignupData} from "@/src/Types/types"
   
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL ||"http://localhost:5000/api"
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000/api"
 
 export const signupUser = async (userData: SignupData) => {
     try {
@@ -11,6 +11,11 @@ export const signupUser = async (userData: SignupData) => {
         return response.data;
     } catch (error: any) {
         console.error('Frontend error:', error.response?.data || error.message);
-        throw new Error('Process failed');
+        // Extract the error message properly from the backend response
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        } else {
+            throw new Error(error.message || 'Signup process failed');
+        }
     }
 };

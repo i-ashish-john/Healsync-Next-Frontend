@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { SignupData } from "../Types/types";
-import { signupUser } from "../services/authServices";
+import { SignupData } from "@/src/Types/types";
+import { signupUser } from "@/src/services/authServices";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState<SignupData>({
@@ -12,6 +12,7 @@ export default function SignupPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,13 +22,21 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-// above setMessage state
+    setIsError(false);
 
     try {
       const response = await signupUser(formData);
-/*thiss..*/ setMessage(response.message || "Signup successful!");
+      setIsError(false);
+      setMessage(response.message || "Signup successful!");
+      // Clear form on success
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+      });
     } catch (error: any) {
-      setMessage(error.message);
+      setIsError(true);
+      setMessage(error.message || "Signup failed");
     }
 
     setLoading(false);
@@ -37,7 +46,11 @@ export default function SignupPage() {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 to-pink-100">
       <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl w-96 hover:shadow-2xl transition-all duration-300">
         <h2 className="text-2xl font-semibold text-center mb-6 text-purple-800">Sign Up</h2>
-        {message && <p className="text-center text-red-500">{message}</p>}
+        {message && (
+          <p className={`text-center ${isError ? 'text-red-500' : 'text-green-500'} mb-4`}>
+            {message}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-purple-700 mb-1">Username</label>
