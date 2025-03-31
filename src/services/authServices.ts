@@ -1,5 +1,5 @@
 import axios from "axios";
-import {SignupData} from "@/src/Types/types"
+import { SignupData } from "@/src/types";
   
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000/api"
 
