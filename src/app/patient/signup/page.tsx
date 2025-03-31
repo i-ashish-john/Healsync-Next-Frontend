@@ -39,7 +39,9 @@ export default function SignupPage() {
       });
     } catch (error: any) {
       setIsError(true);
-      setMessage(error.message || "Signup failed");
+      console.error("Signup error:", error);
+
+  setMessage(error.message || "Signup failed");
     }
 
     setLoading(false);
@@ -47,7 +49,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-white flex">
-      {/* Left Side - Image and Logo */}
+     
       <div className="hidden lg:flex lg:w-1/2 bg-[#9333EA] relative flex-col">
         <div className="absolute top-8 left-8">
           <h1 className="text-3xl font-bold text-white [font-family:'Inter',Helvetica]">
@@ -72,23 +74,21 @@ export default function SignupPage() {
         </div>
       </div>
 
-      {/* Right Side - Sign Up Form */}
+      
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-[448px]">
-          {/* Header */}
+        
           <div className="text-center space-y-2 mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">Create an account</h2>
             <p className="text-base text-gray-600">Sign up to get started!</p>
           </div>
 
-          {/* Show message if exists */}
           {message && (
             <div className={`mb-6 p-3 rounded-lg text-center ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
               {message}
             </div>
           )}
 
-          {/* Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
@@ -155,7 +155,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* Social Sign Up */}
+          
           <Button 
             variant="outline" 
             className="w-full border border-gray-300 hover:bg-gray-50"
@@ -169,7 +169,7 @@ export default function SignupPage() {
             Continue with Google
           </Button>
 
-          {/* Terms */}
+         
           <p className="text-center text-sm text-gray-600 mt-8">
             By continuing, you agree to our{" "}
             <a href="#" className="text-purple-600 hover:underline">Terms of Service</a>{" "}
