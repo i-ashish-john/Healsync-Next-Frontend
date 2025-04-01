@@ -58,7 +58,7 @@ export default function Home() {
         <div className="relative [background:linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(249,250,251,1)_100%)] py-20">
           {/* Hero Section */}
           <section className="flex flex-col items-center justify-center mb-20">
-            <h1 className="w-full max-w-[641px] text-6xl font-bold text-center mb-6 [background:linear-gradient(90deg,rgba(147,51,234,1)_0%,rgba(121,40,202,1)_100%)] [-webkit-background-clip:text] bg-clip-text text-transparent [font-family:'Inter',Helvetica]">
+            <h1 >
               Welcome to HealSync
             </h1>
 

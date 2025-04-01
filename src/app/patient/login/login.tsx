@@ -1,14 +1,13 @@
 "use client";
 import { useState } from "react";
-import { SignupData } from "@/types/index";
-import { signupUser } from "@/services/authServices";
+import { LoginData } from "@/types/index";
+import { loginUser } from "@/services/authServices";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { Separator } from "../../../components/ui/seperator";
 
-export default function SignupPage() {
-  const [formData, setFormData] = useState<SignupData>({
-    username: "",
+export default function LoginPage() {
+  const [formData, setFormData] = useState<LoginData>({
     email: "",
     password: "",
   });
@@ -28,20 +27,13 @@ export default function SignupPage() {
     setIsError(false);
 
     try {
-      const response = await signupUser(formData);
+      const response = await loginUser(formData);
       setIsError(false);
-      setMessage(response.message || "Signup successful!");
-      // Clear form on success
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-      });
+      setMessage(response.message || "Login successful!");
     } catch (error: any) {
       setIsError(true);
-      console.error("Signup error:", error);
-
-      setMessage(error.message || "Signup failed");
+      console.error("Login error:", error);
+      setMessage(error.message || "Login failed");
     }
 
     setLoading(false);
@@ -58,7 +50,7 @@ export default function SignupPage() {
         </div>
         <div className="flex items-center justify-center h-full p-8">
           <div className="max-w-md text-white">
-            <h2 className="text-4xl font-bold mb-4">Welcome to HealSync</h2>
+            <h2 className="text-4xl font-bold mb-4">Welcome Back</h2>
             <p className="text-lg opacity-90">
               Connect with top healthcare professionals and manage your health journey seamlessly
             </p>
@@ -79,8 +71,8 @@ export default function SignupPage() {
         <div className="w-full max-w-[448px]">
         
           <div className="text-center space-y-2 mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900">Create an account</h2>
-            <p className="text-base text-gray-600">Sign up to get started!</p>
+            <h2 className="text-2xl font-semibold text-gray-900">Sign in to your account</h2>
+            <p className="text-base text-gray-600">Welcome back to HealSync!</p>
           </div>
 
           {message && (
@@ -90,22 +82,6 @@ export default function SignupPage() {
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Enter your username"
-                required
-              />
-            </div>
-
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -133,9 +109,28 @@ export default function SignupPage() {
                 value={formData.password}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Create a password"
+                placeholder="Enter your password"
                 required
               />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
+              </div>
+              <div className="text-sm">
+                <a href="#" className="font-medium text-purple-600 hover:text-purple-500">
+                  Forgot your password?
+                </a>
+              </div>
             </div>
 
             <Button 
@@ -143,7 +138,7 @@ export default function SignupPage() {
               disabled={loading}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
@@ -177,11 +172,11 @@ export default function SignupPage() {
             <a href="#" className="text-purple-600 hover:underline">Privacy Policy</a>
           </p>
 
-          {/* Login Link */}
+          {/* Register Link */}
           <p className="text-center text-sm text-gray-600 mt-4">
-            Already have an account?{" "}
-            <Link href="/patient/login" className="text-purple-600 hover:underline">
-              Sign in
+            Don't have an account?{" "}
+            <Link href="/patient/signup" className="text-purple-600 hover:underline">
+              Create account
             </Link>
           </p>
 
