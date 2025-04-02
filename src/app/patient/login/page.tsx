@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { LoginData } from "@/types/index";
-import { loginUser } from "@/services/authServices";
+import { LoginData } from "../../../types/index";
+import { loginUser } from "../../../services/patient/authServices";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { Separator } from "../../../components/ui/seperator";
