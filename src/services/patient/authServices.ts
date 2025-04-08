@@ -1,11 +1,9 @@
-// src/services/authServices.ts
 import axios from "axios";
-import { LoginData, SignupData } from "../types/index";
+import { LoginData, SignupData } from "../../types/index";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000/api";
 
-// Create axios instance with default config
-const axiosInstance = axios.create({
+const axiosInstance = axios.create({//( Create axios instance with default config)
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
@@ -47,14 +45,15 @@ axiosInstance.interceptors.response.use(
         const { accessToken } = response.data;
         localStorage.setItem("accessToken", accessToken);
         
-        // Update auth header and retry
-        originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
-        return axiosInstance(originalRequest);
+        originalRequest.headers["Authorization"] = `Bearer ${accessToken}`; // Update auth header and retry
+        return axiosInstance(originalRequest)
+
       } catch (refreshError) {
-        // If refresh fails, redirect to login
-        localStorage.removeItem("accessToken");
+    
+        localStorage.removeItem("accessToken");// If refresh fails, redirect to login
         window.location.href = "/patient/login";
-        return Promise.reject(refreshError);
+        return Promise.reject(refreshError)
+        
       }
     }
     

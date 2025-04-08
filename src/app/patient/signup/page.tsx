@@ -56,6 +56,7 @@ export default function SignupPage() {
             HealSync
           </h1>
         </div>
+
         <div className="flex items-center justify-center h-full p-8">
           <div className="max-w-md text-white">
             <h2 className="text-4xl font-bold mb-4">Welcome to HealSync</h2>
@@ -64,6 +65,7 @@ export default function SignupPage() {
             </p>
           </div>
         </div>
+
         <div className="absolute bottom-0 left-0 w-full">
           <svg viewBox="0 0 800 400" className="w-full">
             <path 
@@ -72,6 +74,7 @@ export default function SignupPage() {
             />
           </svg>
         </div>
+        
       </div>
 
       

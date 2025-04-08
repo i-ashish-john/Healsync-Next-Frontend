@@ -11,11 +11,14 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, roles = [] }: ProtectedRouteProps) {
   const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+
+const checkAuth = async () => {
+  
       if (!isAuthenticated()) {
         router.push("/patient/login");
         return;
@@ -35,6 +38,7 @@ export default function ProtectedRoute({ children, roles = [] }: ProtectedRouteP
       } finally {
         setLoading(false);
       }
+
     };
 
     checkAuth();
