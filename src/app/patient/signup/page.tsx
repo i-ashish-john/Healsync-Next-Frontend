@@ -1,12 +1,16 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { SignupData } from "@/types/index";
 import { signupUser } from "@/services/patient/authServices";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { Separator } from "../../../components/ui/seperator";
+import { z } from "zod";
+import { signupSchema, SignupFormData } from "../../../lib/validations/auth";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState<SignupData>({
     username: "",
     email: "",
@@ -16,36 +20,71 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [errors, setErrors] = useState<Partial <Record<keyof SignupFormData, string>> > ({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    setIsError(false);
-
-    try {
-      const response = await signupUser(formData);
-      setIsError(false);
-      setMessage(response.message || "Signup successful!");
-      // Clear form on success
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-      });
-    } catch (error: any) {
-      setIsError(true);
-      console.error("Signup error:", error);
-
-      setMessage(error.message || "Signup failed");
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear the error for this field when user starts typing
+    if (errors[name as keyof SignupFormData]) {
+      setErrors({ ...errors, [name]: "" });
     }
-
-    setLoading(false);
   };
+
+  const validateForm = (): boolean => {
+    try {
+      signupSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Partial<Record<keyof SignupFormData, string>> = {};
+        error.errors.forEach((err) => {
+          const field = err.path[0] as keyof SignupFormData;
+          newErrors[field] = err.message;
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
+
+ 
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
+  
+  setLoading(true);
+  setMessage("");
+  setIsError(false);
+
+  try {
+    const response = await signupUser(formData);
+    setIsError(false);
+    setMessage(response.message || "Signup successful!");
+    
+    setFormData({
+      username: "",
+      email: "",
+      password: "",
+    });//clear when success
+    
+    setTimeout(() => {
+      router.push(`/patient/login?email=${encodeURIComponent(formData.email)}`);
+    }, 1500);
+    
+  } catch (error: any) {
+    setIsError(true);
+    console.error("Signup error:", error);
+    setMessage(error.message || "Signup failed");
+  }
+
+  setLoading(false);
+};
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -103,10 +142,12 @@ export default function SignupPage() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className={`w-full px-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent`}
                 placeholder="Enter your username"
-                required
               />
+              {errors.username && (
+                <p className="text-xs text-red-500 mt-1">{errors.username}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -119,10 +160,12 @@ export default function SignupPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent`}
                 placeholder="Enter your email"
-                required
               />
+              {errors.email && (
+                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -135,10 +178,12 @@ export default function SignupPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent`}
                 placeholder="Create a password"
-                required
               />
+              {errors.password && (
+                <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+              )}
             </div>
 
             <Button 

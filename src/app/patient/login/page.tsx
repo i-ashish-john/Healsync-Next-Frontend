@@ -1,12 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LoginData } from "../../../types/index";
-import { loginUser } from "../../../services/patient/authServices";
+import { loginUser, isAuthenticated } from "../../../services/patient/authServices";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { Separator } from "../../../components/ui/seperator";
+import { z } from "zod";
+import { loginSchema, LoginFormData } from "../../../lib/validations/auth";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [formData, setFormData] = useState<LoginData>({
     email: "",
     password: "",
@@ -15,27 +21,80 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
+
+  // Check if we should pre-fill email from query params (coming from signup)
+  useEffect(() => {
+    const emailFromSignup = searchParams.get('email');
+    if (emailFromSignup) {
+      setFormData(prev => ({ ...prev, email: emailFromSignup }));
+    }
+    
+    // If user is already authenticated, redirect to dashboard
+    if (isAuthenticated()) {
+      router.push('/patient/dashboard');
+    }
+  }, [searchParams, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear the error for this field when user starts typing
+    if (errors[name as keyof LoginFormData]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    try {
+      loginSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Partial<Record<keyof LoginFormData, string>> = {};
+        error.errors.forEach((err) => {
+          const field = err.path[0] as keyof LoginFormData;
+          newErrors[field] = err.message;
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate the form before submission
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
     setMessage("");
     setIsError(false);
-
+  
     try {
       const response = await loginUser(formData);
       setIsError(false);
       setMessage(response.message || "Login successful!");
+      
+      // Since we're using httpOnly cookies, we don't need to store tokens
+      // Just mark the user as authenticated in session storage (done in the auth service)
+      
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        router.push('/patient/dashboard');
+      }, 1000);
+      
     } catch (error: any) {
       setIsError(true);
       console.error("Login error:", error);
       setMessage(error.message || "Login failed");
     }
-
+  
     setLoading(false);
   };
 
@@ -92,10 +151,12 @@ export default function LoginPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent`}
                 placeholder="Enter your email"
-                required
               />
+              {errors.email && (
+                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -108,10 +169,12 @@ export default function LoginPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent`}
                 placeholder="Enter your password"
-                required
               />
+              {errors.password && (
+                <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
