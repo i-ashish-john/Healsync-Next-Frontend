@@ -17,7 +17,22 @@ export interface UserData {
   role: string;
   createdAt: string;
 }
+export interface DashboardItem {
+  id: number;
+  title: string;
+  count?: number;
+  status?: string;
+}
 
+export interface DashboardData {
+  success: boolean;
+  message: string;
+  data: {
+    userId: string;
+    dashboardItems: DashboardItem[];
+    lastLogin: string;
+  };
+}
 export interface AuthResponse {
   success: boolean;
   message: string;

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoginData } from "../../../types/index";
-import { loginUser, isAuthenticated } from "../../../services/patient/authServices";
+import { loginUser, isAuthenticated, getCurrentUser } from "../../../services/patient/authServices";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { Separator } from "../../../components/ui/seperator";
@@ -23,18 +23,12 @@ export default function LoginPage() {
   const [isError, setIsError] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
 
-  // Check if we should pre-fill email from query params (coming from signup)
   useEffect(() => {
-    const emailFromSignup = searchParams.get('email');
+    const emailFromSignup = searchParams.get("email");
     if (emailFromSignup) {
-      setFormData(prev => ({ ...prev, email: emailFromSignup }));
+      setFormData((prev) => ({ ...prev, email: emailFromSignup }));
     }
-    
-    // If user is already authenticated, redirect to dashboard
-    if (isAuthenticated()) {
-      router.push('/patient/dashboard');
-    }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -87,7 +81,7 @@ export default function LoginPage() {
       // Redirect to dashboard after successful login
       setTimeout(() => {
         router.push('/patient/dashboard');
-      }, 1000);
+      }, 500);
       
     } catch (error: any) {
       setIsError(true);
@@ -99,8 +93,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-     
+    // for background color change-->
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex"> 
+
       <div className="hidden lg:flex lg:w-1/2 bg-[#9333EA] relative flex-col">
         <div className="absolute top-8 left-8">
           <h1 className="text-3xl font-bold text-white [font-family:'Inter',Helvetica]">
@@ -131,7 +126,7 @@ export default function LoginPage() {
         
           <div className="text-center space-y-2 mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">Sign in to your account</h2>
-            <p className="text-base text-gray-600">Welcome back to HealSync!</p>
+            <p className="text-base text-gray-300">Welcome back to HealSync!</p>
           </div>
 
           {message && (
@@ -190,7 +185,7 @@ export default function LoginPage() {
                 </label>
               </div>
               <div className="text-sm">
-                <a href="#" className="font-medium text-purple-600 hover:text-purple-500">
+                <a href="/patient/forgotpassword" className="font-medium text-purple-600 hover:text-purple-500">
                   Forgot your password?
                 </a>
               </div>
@@ -214,7 +209,7 @@ export default function LoginPage() {
           </div>
 
           
-          <Button 
+          {/* <Button 
             variant="outline" 
             className="w-full border border-gray-300 hover:bg-gray-50"
           >
@@ -225,7 +220,7 @@ export default function LoginPage() {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Continue with Google
-          </Button>
+          </Button> */}
 
          
           <p className="text-center text-sm text-gray-600 mt-8">

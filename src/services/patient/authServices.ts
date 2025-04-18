@@ -1,74 +1,187 @@
-import axiosInstance from "./InstanceAuthServices";
-import { LoginData, SignupData } from "../../types/index";
+// import axiosInstance from "./InstanceAuthServices";
+// import { LoginData, SignupData,AuthResponse, DashboardData } from "../../types/index";
+// import axios from "axios";
 
-export const signupUser = async (userData: SignupData) => {
+// export const signupUser = async (userData: SignupData): Promise<AuthResponse> => {
+//   try {
+//     const response = await axiosInstance.post("/signup", userData);
+//     return response.data;
+//   } catch (error: any) {
+//     if (error.response?.data?.message) {
+//       throw new Error(error.response.data.message);
+//     } else {
+//       throw new Error(error.message || "Signup process failed");
+//     }
+//   }
+// };
+
+// export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => {
+//   try {
+//     console.log('HAI--->>>>>>> BeFore');
+
+//     const response = await axiosInstance.post("/login", loginData);
+//     console.log('HAI--->>>>>>> After');
+//     sessionStorage.setItem("isAuthenticated", "true");
+
+//     // console.log('HAI--->>>>>>> AFter');
+    
+//     // console.log('<||||||>',response.data.data?.accessToken)
+//     if (response.data.data?.accessToken) {
+//       localStorage.setItem("accessToken", response.data.data.accessToken);
+//     }
+    
+//     return response.data;
+//   } catch (error: any) {
+//     if (error.response?.data?.message) {
+//       throw new Error(error.response.data.message);
+//     } else {
+//       throw new Error(error.message || "Login failed");
+//     }
+//   }
+// };
+
+// export const logoutUser = async (): Promise<void>  => {
+//   try {
+//     await axiosInstance.post("/auth/logout");
+    
+//     sessionStorage.removeItem("isAuthenticated");
+//     localStorage.removeItem("accessToken");
+//   } catch (error: any) {
+//     console.error("Logout error:", error);
+//     // Handle logout error if needed
+//     sessionStorage.removeItem("isAuthenticated");
+//     localStorage.removeItem("accessToken");
+//   }
+// };
+
+// export async function getCurrentUser() {
+//   try {
+//     const response = await axiosInstance.get("/auth/me");
+//     return response.data;
+//   } catch (error: any) {
+//     console.error("getCurrentUser error:", error);
+//     throw new Error("Failed to fetch current user");
+//   }
+// }
+
+// export const getDashboardData = async (): Promise<DashboardData> => {
+//   try {
+//     const response = await axiosInstance.get("/auth/dashboard");
+
+//     return response.data;
+//   } catch (error: any) {
+//     if (error.response?.status === 401) {
+//       clearAuthState();
+//       throw new Error("Authentication required to access dashboard");
+//     }
+//     throw handleAuthError(error, "Failed to load dashboard data");
+//   }
+// };
+
+
+// export const isAuthenticated = (): boolean => {
+//   return sessionStorage.getItem("isAuthenticated") === "true";
+// }
+// // Helper functions
+// const clearAuthState = (): void => {
+//   sessionStorage.removeItem("isAuthenticated");
+//   localStorage.removeItem("accessToken");
+// };
+
+// const handleAuthError = (error: any, defaultMessage: string): Error => {
+//   const errorMessage = error.response?.data?.message || error.message || defaultMessage;
+//   return new Error(errorMessage);
+// };
+
+import axiosInstance from './InstanceAuthServices';
+import { LoginData, SignupData, AuthResponse } from '../../types/index';
+import store from '../../store/authStore';
+import { setAuthData, clearAuthData } from '../../store/authSlice';
+
+export const signupUser = async (userData: SignupData): Promise<AuthResponse> => {
   try {
-    const response = await axiosInstance.post("/signup", userData);
+    const response = await axiosInstance.post('/signup', userData);
     return response.data;
   } catch (error: any) {
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw new Error(error.message || "Signup process failed");
-    }
+    throw new Error(error.response?.data?.message || 'Signup process failed');
   }
 };
 
-export const loginUser = async (loginData: LoginData) => {
+export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => {
   try {
-    const response = await axiosInstance.post("/login", loginData);
-    
-    sessionStorage.setItem("isAuthenticated", "true");
-  
-    if (response.data.data?.accessToken) {
-      localStorage.setItem("accessToken", response.data.data.accessToken);
-    }
-    
+    const response = await axiosInstance.post('/login', loginData);
+    const { data } = response.data;
+    // Store in Redux instead of localStorage
+    store.dispatch(setAuthData({ user: { id: data.id, username: data.username, email: data.email }, accessToken: data.accessToken }));
     return response.data;
   } catch (error: any) {
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw new Error(error.message || "Login failed");
-    }
+    throw new Error(error.response?.data?.message || 'Login failed');
   }
 };
 
-export const logoutUser = async () => {
+export const logoutUser = async (): Promise<void> => {
   try {
-    await axiosInstance.post("/auth/logout");
-    // Remove authentication state
-    sessionStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("accessToken");
+    await axiosInstance.post('/auth/logout');
+    store.dispatch(clearAuthData());
   } catch (error: any) {
-    console.error("Logout error:", error);
-    // Even if the server logout fails, remove the auth state
-    sessionStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("accessToken");
+    console.error('Logout error:', error);
+    store.dispatch(clearAuthData()); // Clear anyway on error
   }
 };
 
 export const getCurrentUser = async () => {
+  const response = await axiosInstance.get('/auth/me');
+  return response.data;
+};
+
+export const isAuthenticated = (): boolean => {
+  const state = store.getState();
+  return state.auth.isAuthenticated;
+};
+
+//// UPDATED: Path should match backend '/auth/forgot-password'
+export const forgotPassword = async (email: string) => {
   try {
-    const response = await axiosInstance.get("/auth/me");
-    
-    // If this succeeds, ensure we mark the user as authenticated
-    sessionStorage.setItem("isAuthenticated", "true");
-    
-    return response.data;
+    const res = await axiosInstance.post("/forgotpassword", { email });
+    console.log('Bro the issue is this =',res)
+    return res.data;
   } catch (error: any) {
-    if (error.response?.status === 401) {
-      // Clear auth state on unauthorized
-      sessionStorage.removeItem("isAuthenticated");
-      localStorage.removeItem("accessToken");
-    }
-    throw error;
+    console.error('frontend error--> service.ts', error);
+    throw new Error(
+      error.response?.data?.message || "Failed to initiate password reset"
+    );
   }
 };
 
-// Function to check if user is authenticated
-export const isAuthenticated = () => {
-  // Check both session storage (for cookie auth) and localStorage (for token auth)
-  return sessionStorage.getItem("isAuthenticated") === "true" || 
-         !!localStorage.getItem("accessToken");
+// UPDATED: Added email parameter and modified to match backend requirements
+export const resetPassword = async (
+  token: string,
+  email: string,
+  password: string,
+  confirmPassword: string
+): Promise<{success: boolean, message: string}> => {
+  try {                                     //get so put auth in front
+    const res = await axiosInstance.post("/resetpassword", {
+      token, email, password, confirmPassword
+    });
+    return res.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || "Failed to reset password"
+    );
+  }
+};
+
+// NEW: Added function to verify token validity
+export const verifyResetToken = async (
+  token: string,
+  email: string
+): Promise<{valid: boolean}> => {
+  try {
+    const res = await axiosInstance.get("/auth/verifyresettoken", { params: { token, email } });
+    return { valid: res.data.success };
+  } catch (error: any) {
+    console.log('invalid  token is this')
+    return { valid: false };
+  }
 };
