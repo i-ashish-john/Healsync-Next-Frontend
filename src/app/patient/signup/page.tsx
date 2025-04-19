@@ -1,12 +1,18 @@
 "use client";
 import { useState } from "react";
+import Navbar from "../../../components/patient/navbar";
+import { useRouter } from "next/navigation";
 import { SignupData } from "@/types/index";
 import { signupUser } from "@/services/patient/authServices";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { Separator } from "../../../components/ui/seperator";
+import { z } from "zod";
+import { signupSchema, SignupFormData } from "../../../lib/validations/auth";
+import axiosInstance from "@/services/patient/InstanceAuthServices";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState<SignupData>({
     username: "",
     email: "",
@@ -16,39 +22,66 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [errors, setErrors] = useState<Partial <Record<keyof SignupFormData, string>> > ({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear the error for this field when user starts typing
+    if (errors[name as keyof SignupFormData]) {
+      setErrors({ ...errors, [name]: "" });
+    }
   };
 
+  const validateForm = (): boolean => {
+    try {
+      signupSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Partial<Record<keyof SignupFormData, string>> = {};
+        error.errors.forEach((err) => {
+          const field = err.path[0] as keyof SignupFormData;
+          newErrors[field] = err.message;
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
+
+ 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+  
     setLoading(true);
     setMessage("");
     setIsError(false);
-
+  
     try {
-      const response = await signupUser(formData);
-      setIsError(false);
-      setMessage(response.message || "Signup successful!");
-      // Clear form on success
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-      });
-    } catch (error: any) {
+      const { data } = await axiosInstance.post("/auth/send-signup-otp", formData);
+      setMessage(data.message || "OTP sent!");
+      setFormData({ username: "", email: "", password: "" });
+
+      setTimeout(() => {
+        router.push(`/patient/verify-otp?email=${encodeURIComponent(data.data?.email || formData.email)}`);
+      }, 500);
+
+    } catch (err: any) {
       setIsError(true);
-      console.error("Signup error:", error);
-
-      setMessage(error.message || "Signup failed");
+      setMessage(err.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
-
   return (
-    <div className="min-h-screen bg-white flex">
+  
+    <>
+            
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex">
      
       <div className="hidden lg:flex lg:w-1/2 bg-[#9333EA] relative flex-col">
         <div className="absolute top-8 left-8">
@@ -83,7 +116,7 @@ export default function SignupPage() {
         
           <div className="text-center space-y-2 mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">Create an account</h2>
-            <p className="text-base text-gray-600">Sign up to get started!</p>
+            <p className="text-base text-gray-300">Sign up to get started!</p>
           </div>
 
           {message && (
@@ -98,15 +131,20 @@ export default function SignupPage() {
                 Username
               </label>
               <input
-                type="text"
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Enter your username"
-                required
-              />
+          type="text"
+          id="username"
+          name="username"
+          value={formData.username}
+          onChange={handleChange}
+          placeholder="Enter your username"
+          className={`w-full px-3 py-2 border ${
+            errors.username ? 'border-red-500' : 'border-gray-300'
+          } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-white text-gray-900 dark:bg-gray-800 dark:text-white`}
+        />
+
+              {errors.username && (
+                <p className="text-xs text-red-500 mt-1">{errors.username}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -114,15 +152,20 @@ export default function SignupPage() {
                 Email
               </label>
               <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Enter your email"
-                required
-              />
+          type="email"
+          id="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Enter your email"
+          className={`w-full px-3 py-2 border ${
+            errors.email ? 'border-red-500' : 'border-gray-300'
+          } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-white text-gray-900 dark:bg-gray-800 dark:text-white`}
+        />
+
+              {errors.email && (
+                <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -130,15 +173,20 @@ export default function SignupPage() {
                 Password
               </label>
               <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Create a password"
-                required
-              />
+          type="password"
+          id="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          placeholder="Create a password"
+          className={`w-full px-3 py-2 border ${
+            errors.password ? 'border-red-500' : 'border-gray-300'
+          } rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-white text-gray-900 dark:bg-gray-800 dark:text-white`}
+        />
+
+              {errors.password && (
+                <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+              )}
             </div>
 
             <Button 
@@ -159,7 +207,7 @@ export default function SignupPage() {
           </div>
 
           
-          <Button 
+          {/* <Button 
             variant="outline" 
             className="w-full border border-gray-300 hover:bg-gray-50"
           >
@@ -170,7 +218,7 @@ export default function SignupPage() {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Continue with Google
-          </Button>
+          </Button> */}
 
          
           <p className="text-center text-sm text-gray-600 mt-8">
@@ -197,5 +245,7 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+
+    </>     
   );
 }
