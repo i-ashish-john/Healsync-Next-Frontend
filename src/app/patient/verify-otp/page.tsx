@@ -10,7 +10,9 @@ export default function VerifyOtpPage() {
     const email = params.get("email") || "";
     const [code, setCode] = useState<string[]>(Array(6).fill(""));
     const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+
     const [timer, setTimer] = useState(120);
+    
     const [busy, setBusy] = useState(false);
 
     // countdown
@@ -31,23 +33,24 @@ export default function VerifyOtpPage() {
     };
 
     useEffect(() => {
-        // send OTP immediately
-        const sendOtp = async () => {
-            try {
-                await axiosInstance.post("/auth/resend-signup-otp", { email });
-                  toast.success("OTP sent");      
-            } catch {
-                  toast.success("Loading...");
-            }
-        };
+      const sendOtp = async () => {
+          try {
+              await axiosInstance.post("/auth/send-signup-otp", { email });
+              toast.success("OTP sent");      
+          } catch {
+              toast.success("Loading...");
+          }
+      };
 
-        if (email) {
-            sendOtp();
-        } else {
-            toast.error("Email is missing");
-            router.push("/patient/signup");
-        }
-    }, [email, router]);
+      const otpAlreadySent = params.get("otpSent") === "true";
+  
+      if (email && !otpAlreadySent) {
+          sendOtp();
+      } else if (!email) {
+          toast.error("Email is missing");
+          router.push("/patient/signup");
+      }
+  }, [email, router, params]);
 
 const handleVerify = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
@@ -70,21 +73,27 @@ const handleVerify = async (e: { preventDefault: () => void; }) => {
 };
 
 const resend = async () => {
-    setBusy(true);
-    try {
-      console.log("Resending OTP for email:", email);
-      await axiosInstance.post("/auth/resend-signup-otp", { email });
-      toast.success("OTP resent");
-      setTimer(120);
-      setCode(Array(6).fill(""));
-      inputsRef.current[0]?.focus();
-    } catch (err) {
-      console.error("resend failed:", err);
-      toast.error("Couldn’t resend OTP");
-    } finally {
-      setBusy(false);
+  setBusy(true);
+  try {
+    const response = await axiosInstance.post("/auth/resend-signup-otp", { email });
+    toast.success("OTP resent");
+    setTimer(120); //  2 minutes(expiry time of token for verify)
+    setCode(Array(6).fill(""));
+    inputsRef.current[0]?.focus();
+
+  } catch (err: any) {
+    const errorMessage = err.response?.data?.message || "Couldn't resend OTP";
+    toast.error(errorMessage);
+    
+    if (errorMessage.includes("expired") || errorMessage.includes("session")) {
+      setTimeout(() => {
+        router.push("/patient/signup");
+      }, 3000); // Give user 3 seconds to read the message
     }
-  };
+  } finally {
+    setBusy(false);
+  }
+};
 
   if (!email) {
     router.push("/patient/signup");

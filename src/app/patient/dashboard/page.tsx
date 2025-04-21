@@ -2,14 +2,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "../../../components/ProtectedRoute";
-import { getCurrentUser } from "../../../services/patient/authServices";
+import { getCurrentUser,logoutUser } from "../../../services/patient/authServices";
 import { UserData } from "../../../types/index";
+
+import store from "../../../store/authStore"
+import { clearAuthData } from "../../../store/authSlice";
 import Link from "next/link";
-import { Bell, Check, Calendar, User, Home, Clock, FileText, Activity } from "lucide-react";
+import { Bell, Check, Calendar, User, Home, Clock, FileText, Activity, LogOut, Settings, ChevronDown } from "lucide-react";
+import { toast } from "react-toastify";
 
 export default function Dashboard() {
   const [userName, setUserName] = useState("J");
   const [unreadNotifications, setUnreadNotifications] = useState(3);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const router = useRouter();
   
   // Dummy data for dashboard components
   const upcomingAppointments = [
@@ -28,10 +34,48 @@ export default function Dashboard() {
     { name: "Vitamin D", dosage: "1000 IU", frequency: "Once daily", remaining: 30 }
   ];
 
+  // Toggle profile dropdown
+  const toggleProfileDropdown = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try{
+
+    await logoutUser()
+
+    store.dispatch(clearAuthData());
+
+    router.replace('/patient/login');
+
+  }catch(err){
+    console.error("Logout failed:", err);
+
+    toast.error("Logout failed. Redirecting to login page.");
+    store.dispatch(clearAuthData());
+    router.replace("/patient/login");
+
+  }
+
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isProfileDropdownOpen && !event.target.closest('#profile-dropdown-container')) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProfileDropdownOpen]);
+
   return (
     <ProtectedRoute>
-          {/* <div className="min-h-screen bg-white dark:bg-gray-900 flex">  */}
-
       <div className="min-h-screen flex flex-col bg-gray-50">
         <header className="bg-white border-b border-gray-200 py-3 px-4 shadow-sm sticky top-0 z-10">
           <div className="container mx-auto flex items-center justify-between">
@@ -76,8 +120,40 @@ export default function Dashboard() {
                   </span>
                 )}
               </button>
-              <div className="h-8 w-8 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center text-white font-medium cursor-pointer transition-colors duration-200">
-                {userName}
+
+              {/* Profile dropdown container */}
+              <div id="profile-dropdown-container" className="relative">
+                <button 
+                  onClick={toggleProfileDropdown}
+                  className="flex items-center space-x-1 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                >
+                  <div className="h-8 w-8 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center text-white font-medium cursor-pointer transition-colors duration-200">
+                    {userName}
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-600" />
+                </button>
+                
+                {/* Dropdown menu */}
+                {isProfileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <Link href="/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                      <User className="h-4 w-4 mr-2" />
+                      My Profile
+                    </Link>
+                    <Link href="/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Link>
+                    <hr className="my-1 border-gray-200" />
+                    <button 
+                      onClick={handleLogout} 
+                      className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

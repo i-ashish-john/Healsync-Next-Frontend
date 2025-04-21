@@ -28,11 +28,14 @@ export default function ProtectedRoute({ children, redirectPath = "/patient/logi
 
         await getCurrentUser(); // Verify with backend
         setIsAuth(true);
+        
       } catch (error) {
+
         console.error("Auth check failed:", error);
         setErrorMessage("Authentication failed. Please try again.");
         sessionStorage.removeItem("isAuthenticated");
         router.push("/patient/login");
+
       } finally {
         setIsLoading(false);
       }

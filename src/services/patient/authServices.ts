@@ -1,98 +1,3 @@
-// import axiosInstance from "./InstanceAuthServices";
-// import { LoginData, SignupData,AuthResponse, DashboardData } from "../../types/index";
-// import axios from "axios";
-
-// export const signupUser = async (userData: SignupData): Promise<AuthResponse> => {
-//   try {
-//     const response = await axiosInstance.post("/signup", userData);
-//     return response.data;
-//   } catch (error: any) {
-//     if (error.response?.data?.message) {
-//       throw new Error(error.response.data.message);
-//     } else {
-//       throw new Error(error.message || "Signup process failed");
-//     }
-//   }
-// };
-
-// export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => {
-//   try {
-//     console.log('HAI--->>>>>>> BeFore');
-
-//     const response = await axiosInstance.post("/login", loginData);
-//     console.log('HAI--->>>>>>> After');
-//     sessionStorage.setItem("isAuthenticated", "true");
-
-//     // console.log('HAI--->>>>>>> AFter');
-    
-//     // console.log('<||||||>',response.data.data?.accessToken)
-//     if (response.data.data?.accessToken) {
-//       localStorage.setItem("accessToken", response.data.data.accessToken);
-//     }
-    
-//     return response.data;
-//   } catch (error: any) {
-//     if (error.response?.data?.message) {
-//       throw new Error(error.response.data.message);
-//     } else {
-//       throw new Error(error.message || "Login failed");
-//     }
-//   }
-// };
-
-// export const logoutUser = async (): Promise<void>  => {
-//   try {
-//     await axiosInstance.post("/auth/logout");
-    
-//     sessionStorage.removeItem("isAuthenticated");
-//     localStorage.removeItem("accessToken");
-//   } catch (error: any) {
-//     console.error("Logout error:", error);
-//     // Handle logout error if needed
-//     sessionStorage.removeItem("isAuthenticated");
-//     localStorage.removeItem("accessToken");
-//   }
-// };
-
-// export async function getCurrentUser() {
-//   try {
-//     const response = await axiosInstance.get("/auth/me");
-//     return response.data;
-//   } catch (error: any) {
-//     console.error("getCurrentUser error:", error);
-//     throw new Error("Failed to fetch current user");
-//   }
-// }
-
-// export const getDashboardData = async (): Promise<DashboardData> => {
-//   try {
-//     const response = await axiosInstance.get("/auth/dashboard");
-
-//     return response.data;
-//   } catch (error: any) {
-//     if (error.response?.status === 401) {
-//       clearAuthState();
-//       throw new Error("Authentication required to access dashboard");
-//     }
-//     throw handleAuthError(error, "Failed to load dashboard data");
-//   }
-// };
-
-
-// export const isAuthenticated = (): boolean => {
-//   return sessionStorage.getItem("isAuthenticated") === "true";
-// }
-// // Helper functions
-// const clearAuthState = (): void => {
-//   sessionStorage.removeItem("isAuthenticated");
-//   localStorage.removeItem("accessToken");
-// };
-
-// const handleAuthError = (error: any, defaultMessage: string): Error => {
-//   const errorMessage = error.response?.data?.message || error.message || defaultMessage;
-//   return new Error(errorMessage);
-// };
-
 import axiosInstance from './InstanceAuthServices';
 import { LoginData, SignupData, AuthResponse } from '../../types/index';
 import store from '../../store/authStore';
@@ -114,9 +19,12 @@ export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => 
     console.log('Login response:', data);
     store.dispatch(setAuthData({ user: { id: data.id, username: data.username, email: data.email }, accessToken: data.accessToken }));
     return response.data;
+    
   } catch (error: any) {
+
     console.log(error.response?.data); 
     throw new Error(error.response?.data?.message || 'Login failed');
+
   }
 };
 
