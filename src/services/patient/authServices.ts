@@ -1,7 +1,7 @@
 import axiosInstance from './InstanceAuthServices';
 import { LoginData, SignupData, AuthResponse } from '../../types/index';
-import store from '../../store/authStore';
-import { setAuthData, clearAuthData } from '../../store/authSlice';
+import store from '../../store/patient/authStore';
+import { setAuthData, clearAuthData } from '../../store/patient/authSlice';
 
 export const signupUser = async (userData: SignupData): Promise<AuthResponse> => {
   try {
