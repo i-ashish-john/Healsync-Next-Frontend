@@ -16,15 +16,26 @@ export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => 
   try {
     const response = await axiosInstance.post('/login', loginData);
     const { data } = response.data;
-    console.log('Login response:', data);
-    store.dispatch(setAuthData({ user: { id: data.id, username: data.username, email: data.email }, accessToken: data.accessToken }));
+    console.log('Login response:<<<<<<<<------', data);
+
+    if (!data.role) {
+      console.warn('Role missing in response');  // Warn if role is absent
+    }
+
+    store.dispatch(setAuthData({ 
+      accessToken: data.accessToken,
+      user: {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        role: data.role,
+      },
+    }));
+    console.log('Redux state:', store.getState());  // Debug state
     return response.data;
-    
   } catch (error: any) {
-
-    console.log(error.response?.data); 
+    console.log(error.response?.data);
     throw new Error(error.response?.data?.message || 'Login failed');
-
   }
 };
 
@@ -34,7 +45,7 @@ export const logoutUser = async (): Promise<void> => {
     store.dispatch(clearAuthData());
   } catch (error: any) {
     console.error('Logout error:', error);
-    store.dispatch(clearAuthData()); // Clear anyway on error
+    store.dispatch(clearAuthData());    
   }
 };
 

@@ -1,39 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
-import { z } from "zod";
-import { verifyResetToken, resetPassword } from "../../../services/patient/authServices";
+import { resetPassword } from "../../../services/doctor/doctorService";
 
-// Validation schema
-const schema = z
-  .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Must include at least one uppercase letter")
-      .regex(/[a-z]/, "Must include at least one lowercase letter")
-      .regex(/[0-9]/, "Must include at least one number")
-      .regex(/[^a-zA-Z0-9]/, "Must include at least one special character"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type FormData = z.infer<typeof schema>;
-
-export default function ConfirmPassword() {
+export default function ResetPassword() {
+  const params = useSearchParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
-  const email = searchParams.get("email") || "";
+  const email = params.get("email") || "";
+  const token = params.get("token") || "";
 
   const [passwordData, setPasswordData] = useState({
-    password: "",
+    newPassword: "",
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
@@ -41,80 +21,83 @@ export default function ConfirmPassword() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [resetSuccessful, setResetSuccessful] = useState(false);
 
-  // Check token and email on load
+  // Validate token and email presence immediately
   useEffect(() => {
-    if (!token || !email) {
-      toast.error("Invalid reset link");
-      router.push("/patient/login");
+    if (!email || !token) {
+      // No token or email in URL, redirect to login
+      router.push("/doctor/login");
       return;
     }
 
-    verifyResetToken(token, email)
-      .then((res) => {
-        if (res.valid) {
-          setTokenValid(true);
-        } else {
-          toast.error("Token expired or invalid");
-          router.push("/patient/login");
-        }
-      })
-      .catch(() => {
-        toast.error("Verification failed");
-        router.push("/patient/login");
-      });
-  }, [token, email, router]);
+    // Here you should validate the token with your API
+    // For now, we'll assume the token is valid if it exists
+    setTokenValid(true);
+  }, [email, token, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPasswordData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   const validateForm = () => {
-    try {
-      schema.parse(passwordData);
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const validationErrors: { [key: string]: string } = {};
-        error.errors.forEach((err) => {
-          const field = err.path[0];
-          validationErrors[field] = err.message;
-        });
-        setErrors(validationErrors);
-      }
-      return false;
+    const validationErrors: { [key: string]: string } = {};
+    
+    if (!passwordData.newPassword) {
+      validationErrors.newPassword = "Password is required";
+    } else if (passwordData.newPassword.length < 8) {
+      validationErrors.newPassword = "Password must be at least 8 characters";
     }
+    
+    if (!passwordData.confirmPassword) {
+      validationErrors.confirmPassword = "Please confirm your password";
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      validationErrors.confirmPassword = "Passwords do not match";
+    }
+    
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!validateForm()) return;
+    
     setLoading(true);
     try {
-      await resetPassword(token, email, passwordData.password, passwordData.confirmPassword);
+      const res = await resetPassword(email, token, passwordData.newPassword);
       setResetSuccessful(true);
       toast.success("Password reset successful!");
+      // Redirect after a few seconds
       setTimeout(() => {
-        router.push("/patient/login");
+        router.push("/doctor/login");
       }, 3000);
     } catch (err: any) {
-      toast.error(err.message || "Failed to reset password");
-      if (err.message?.includes("expired")) {
+      if (err.message === 'The reset token has expired') {
+        toast.error('The reset token has expired. Please request a new one.');
         setTimeout(() => {
-          router.push("/patient/login");
+          router.push("/doctor/login");
         }, 2000);
+      } else {
+        toast.error(err.message || "Failed to reset password");
+        if (err.message?.includes("expired")) {
+          setTimeout(() => {
+            router.push("/doctor/login");
+          }, 2000);
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // If token is invalid, don't render the page
   if (!tokenValid) {
-    return <div className="text-center mt-10 text-lg text-gray-600">Verifying link...</div>;
+    return null; // The useEffect will handle redirect
   }
 
+  // If reset was successful
   if (resetSuccessful) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -131,7 +114,7 @@ export default function ConfirmPassword() {
             <p className="text-gray-600 mb-6">
               Your password has been successfully updated. You can now log in with your new password.
             </p>
-            <Link href="/patient/login" className="inline-block bg-purple-600 text-white py-2 px-6 rounded-md hover:bg-purple-700 transition duration-200">
+            <Link href="/doctor/login" className="inline-block bg-purple-600 text-white py-2 px-6 rounded-md hover:bg-purple-700 transition duration-200">
               Go to Login
             </Link>
           </div>
@@ -141,9 +124,10 @@ export default function ConfirmPassword() {
     );
   }
 
+  // Main reset password form
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Left side */}
+      {/* Left side - Image and text */}
       <div className="hidden md:flex md:w-1/2 bg-purple-600 text-white p-8 flex-col justify-center items-center relative">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative z-10 flex flex-col items-center justify-center h-full">
@@ -169,23 +153,22 @@ export default function ConfirmPassword() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 New Password
               </label>
               <input
-                id="password"
-                name="password"
+                id="newPassword"
+                name="newPassword"
                 type="password"
-                value={passwordData.password}
+                value={passwordData.newPassword}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 border ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
+                  errors.newPassword ? 'border-red-500' : 'border-gray-300'
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600`}
                 placeholder="••••••••"
-                disabled={loading}
               />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              {errors.newPassword && (
+                <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
               )}
             </div>
 
@@ -203,7 +186,6 @@ export default function ConfirmPassword() {
                   errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600`}
                 placeholder="••••••••"
-                disabled={loading}
               />
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
@@ -234,7 +216,7 @@ export default function ConfirmPassword() {
           </form>
 
           <div className="mt-8 text-center">
-            <Link href="/patient/login" className="text-purple-600 hover:text-purple-800 font-medium">
+            <Link href="/doctor/login" className="text-purple-600 hover:text-purple-800 font-medium">
               Back to Login
             </Link>
           </div>

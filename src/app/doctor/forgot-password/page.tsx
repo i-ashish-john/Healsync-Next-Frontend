@@ -1,36 +1,54 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation"; // Add useSearchParams
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
-import { forgotPassword } from "../../../services/patient/authServices";
+import { forgotPassword } from "../../../services/doctor/doctorService";
 
 export default function ForgotPassword() {
   const router = useRouter();
+  const searchParams = useSearchParams(); // Hook to access query parameters
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [accessAllowed, setAccessAllowed] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check for the 'from' query parameter
+    const from = searchParams.get("from");
+    if (from === "login") {
+      setAccessAllowed(true); // Allow access if coming from login page
+    } else {
+      router.push("/doctor/login"); // Redirect to login if no valid parameter
+    }
+  }, [router, searchParams]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) {
       toast.error("Please enter your email");
       return;
     }
-
+    
     setLoading(true);
     try {
-      await forgotPassword(email);
+      const res = await forgotPassword(email);
       toast.success("Password reset link sent to your email");
       setSent(true);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to send reset link");
     } finally {
       setLoading(false);
     }
   };
 
+  // If not allowed to access this page, don't render anything
+  if (!accessAllowed) {
+    return null; // useEffect will handle the redirect
+  }
+
+  // If showing success message after sending email
   if (sent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -51,7 +69,7 @@ export default function ForgotPassword() {
             <p className="text-sm text-gray-500 mb-6">
               If you don't receive the email within a few minutes, please check your spam folder.
             </p>
-            <Link href="/patient/login" className="inline-block bg-purple-600 text-white py-2 px-6 rounded-md hover:bg-purple-700 transition duration-200">
+            <Link href="/doctor/login" className="inline-block bg-purple-600 text-white py-2 px-6 rounded-md hover:bg-purple-700 transition duration-200">
               Return to Login
             </Link>
           </div>
@@ -87,7 +105,7 @@ export default function ForgotPassword() {
             <p className="text-gray-600 mt-2">Enter your email to receive a password reset link</p>
           </div>
 
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address
@@ -97,15 +115,14 @@ export default function ForgotPassword() {
                 type="email"
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
-                placeholder="patient@example.com"
+                placeholder="doctor@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
               />
             </div>
 
             <button 
-              onClick={handleSubmit}
+              type="submit" 
               disabled={loading}
               className="w-full bg-purple-600 text-white py-3 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 flex justify-center items-center"
             >
@@ -121,12 +138,12 @@ export default function ForgotPassword() {
                 'Send Reset Link'
               )}
             </button>
-          </div>
+          </form>
 
           <div className="mt-8 text-center">
             <p className="text-gray-600">
               Remember your password?{' '}
-              <Link href="/patient/login" className="text-purple-600 hover:text-purple-800 font-medium">
+              <Link href="/doctor/login" className="text-purple-600 hover:text-purple-800 font-medium">
                 Back to Login
               </Link>
             </p>

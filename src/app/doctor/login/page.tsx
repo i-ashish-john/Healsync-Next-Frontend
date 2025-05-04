@@ -27,19 +27,24 @@ export default function DoctorLogin() {
     e.preventDefault();
     setIsLoading(true);
     const validationErrors: { [key: string]: string } = {};
+
     if (!formData.email) validationErrors.email = "Email is required";
+
     if (!formData.password) validationErrors.password = "Password is required";
+
     if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setIsLoading(false);
+        setErrors(validationErrors);
+        setIsLoading(false);
       return;
     }
 
     try {
-      const response = await loginDoctor(formData);
-      // loginDoctor dispatches auth data internally
-      toast.success(response.message || "Login successful!");
-      router.push("/doctor/dashboard");
+      const res = await loginDoctor(formData);
+      if (res.success) {
+        toast.success(res.message);
+        router.push('/doctor/dashboard');
+      }
+      
     } catch (err: any) {
       const msg = err.message || "Login failed. Please try again.";
       toast.error(msg);
@@ -109,7 +114,10 @@ export default function DoctorLogin() {
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                     Password
                   </label>
-                  <Link href="/doctor/forgot-password" className="text-sm text-purple-600 hover:text-purple-800">
+                  <Link 
+                    href="/doctor/forgot-password?from=login" 
+                    className="text-sm text-purple-600 hover:text-purple-800"
+                  >
                     Forgot password?
                   </Link>
                 </div>

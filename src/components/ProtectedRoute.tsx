@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children, redirectPath = "/patient/logi
       try {
         
         if (!isAuthenticated()) {
-          router.push("/patient/login");
+          router.replace("/patient/login");
           return;
         }
 

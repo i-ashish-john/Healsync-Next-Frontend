@@ -29,10 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={`${inter.className} bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white transition-colors duration-300`}>
         
       <Toaster position="top-center" />
-
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+       <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

@@ -63,9 +63,18 @@ export const resendOtp = async (email: string): Promise<OtpResponse> => {
 export const loginDoctor = async (loginData: LoginData): Promise<AuthResponse> => {
   try {
     const response = await axiosInstance.post('/doctor/login', loginData);
-    const { data } = response.data;
-    store.dispatch(setAuthData({ user: { id: data.id, email: data.email }, accessToken: data.accessToken }));
+    const { success, message, data, accessToken } = response.data;
+    if (!success) {
+      throw new Error(message);
+    }
+
+    store.dispatch(setAuthData({
+      user: { id: data.id, email: data.email },
+      accessToken,
+    }));
+
     return response.data;
+    
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Login failed');
   }
@@ -78,6 +87,30 @@ export const logoutDoctor = async (): Promise<void> => {
   } catch (error: any) {
     console.error('Logout error:', error);
     store.dispatch(clearAuthData());
+  }
+};
+
+export const forgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+  const res = await axiosInstance.post('/doctor/forgot-password', { email });
+  return res.data;
+};
+
+export const resetPassword = async (
+  email: string,
+  token: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const res = await axiosInstance.post('/doctor/reset-password', { email, token, newPassword });
+    return res.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 410) {
+      throw new Error('The reset token has expired');
+    } else if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error('Failed to reset password');
+    }
   }
 };
 

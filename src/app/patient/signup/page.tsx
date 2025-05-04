@@ -36,7 +36,9 @@ export default function SignupPage() {
 
   const validateForm = (): boolean => {
     try {
+
       signupSchema.parse(formData);
+
       setErrors({});
       return true;
     } catch (error) {
@@ -55,6 +57,7 @@ export default function SignupPage() {
  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!validateForm()) return;
   
     setLoading(true);

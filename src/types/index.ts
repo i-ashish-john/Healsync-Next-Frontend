@@ -1,7 +1,5 @@
 export interface SignupData {
-  // [x: string]: string;
-  // [x: string]: any;
-  name: string;
+  username: string;
   email: string;
   password: string;
   // confirmPassword:string;
@@ -16,14 +14,15 @@ export interface OtpResponse {
 export interface LoginData {
   email: string;
   password: string;
+  role?: string;
 }
 
 export interface UserData {
   id: string;
   username: string;
   email: string;
-  role: string;
-  createdAt: string;
+  role?: string;
+  createdAt?: string;
 }
 export interface DashboardItem {
   id: number;

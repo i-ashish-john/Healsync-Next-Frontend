@@ -97,12 +97,12 @@ export default function Dashboard() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
-        isProfileDropdownOpen &&
-        !event.target.closest("#profile-dropdown-container")
+      isProfileDropdownOpen &&
+      !(event.target as HTMLElement).closest("#profile-dropdown-container")
       ) {
-        setIsProfileDropdownOpen(false);
+      setIsProfileDropdownOpen(false);
       }
     };
 
