@@ -2,6 +2,7 @@ export interface SignupData {
   username: string;
   email: string;
   password: string;
+  role?: string; 
   // confirmPassword:string;
 }
 
@@ -23,6 +24,7 @@ export interface UserData {
   email: string;
   role?: string;
   createdAt?: string;
+  
 }
 export interface DashboardItem {
   id: number;
@@ -43,8 +45,13 @@ export interface DashboardData {
 export interface AuthResponse {
   success: boolean;
   message: string;
-  accessToken?: string;
-  user?: UserData;
+  data: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;      // ← make sure role is here
+  };
+  accessToken: string;
 }
 
 export interface ApiError {
@@ -52,3 +59,12 @@ export interface ApiError {
   message: string;
   errors?: any;
 }
+
+// Define auth state for easy reuse
+export interface AuthState {
+  user: UserData | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+  isDoctor: boolean;
+}
+

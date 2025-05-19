@@ -1,5 +1,5 @@
 import axiosInstance from './InstanceDoctorService';
-import { LoginData, SignupData, AuthResponse,OtpResponse } from '../../types/index';
+import { LoginData, SignupData, AuthResponse, OtpResponse } from '../../types/index';
 import store from '../../store/doctor/DoctorAuthStore';
 import { setAuthData, clearAuthData } from '../../store/doctor/DoctorAuthSlice';
 
@@ -11,40 +11,42 @@ export const signupDoctor = async (doctorData: SignupData): Promise<AuthResponse
     if (response.status < 200 || response.status >= 300) {
       throw new Error(data.message || 'Registration failed');
     }
-    
     return data;
-
   } catch (error) {
-    // throw new Error(error.response?.data?.message || 'Signup process failed');
-    throw error 
+    throw error;
   }
 };
 
-
 export const sendSignupOTP = async (email: string, formData: SignupData): Promise<OtpResponse> => {
   try {
-    
     const { email: _, ...restFormData } = formData;
-    const response = await axiosInstance.post('/doctor/send-otp', { email, ...restFormData });
+    const response = await axiosInstance.post('/doctor/send-otp', { 
+      email, 
+      ...restFormData,
+      role: 'doctor'
+    });
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Failed to send OTP');
   }
 };
 
-
 export const verifyOtp = async (email: string, otp: string): Promise<AuthResponse> => {
   try {
     const response = await axiosInstance.post('/doctor/verify-otp', { email, otp });
-    const { accessToken, user } = response.data;
     
     if (response.data.success) {
+      const { data } = response.data;
       store.dispatch(setAuthData({ 
-        user: { id: user.id, email: user.email }, 
-        accessToken 
+        user: {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role || 'doctor',
+        },
+        accessToken: response.data.accessToken,
       }));
     }
-    
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'OTP verification failed');
@@ -64,17 +66,26 @@ export const loginDoctor = async (loginData: LoginData): Promise<AuthResponse> =
   try {
     const response = await axiosInstance.post('/doctor/login', loginData);
     const { success, message, data, accessToken } = response.data;
+    
     if (!success) {
       throw new Error(message);
     }
-
+    
+    if (data.role !== 'doctor') {
+      throw new Error('Invalid account type. Please use a doctor account.');
+    }
+    
     store.dispatch(setAuthData({
-      user: { id: data.id, email: data.email },
+      user: {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role
+      },
       accessToken,
     }));
-
-    return response.data;
     
+    return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Login failed');
   }
@@ -115,11 +126,46 @@ export const resetPassword = async (
 };
 
 export const getCurrentDoctor = async () => {
-  const response = await axiosInstance.get('/doctor/auth/me');
-  return response.data;
+  try {
+    const response = await axiosInstance.get('/doctor/auth/me');
+    
+    if (response.data.success && response.data.data) {
+      const userData = response.data.data;
+      store.dispatch(setAuthData({
+        user: {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role || 'doctor'
+        },
+        accessToken: store.getState().auth.accessToken || localStorage.getItem('accessToken') || '',
+      }));
+      return {
+        success: true,
+        data: {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role || 'doctor',
+          createdAt: userData.createdAt,
+        },
+      };
+    }
+    
+    throw new Error('Failed to fetch doctor data');
+  } catch (error) {
+    // Don't clear the auth state here; preserve existing state
+    console.error('Error fetching current doctor:', error);
+    throw error;
+  }
 };
 
 export const isAuthenticated = (): boolean => {
   const state = store.getState();
   return state.auth.isAuthenticated;
+};
+
+export const isDoctor = (): boolean => {
+  const state = store.getState();
+  return state.auth.isAuthenticated && state.auth.user?.role === 'doctor';
 };

@@ -1,21 +1,31 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loginDoctor } from "../../../services/doctor/doctorService";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../store/doctor/DoctorAuthStore";
 
 export default function DoctorLogin() {
   const router = useRouter();
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'doctor') {
+      router.push('/doctor/dashboard');
+    }
+  }, [isAuthenticated, user, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,12 +39,11 @@ export default function DoctorLogin() {
     const validationErrors: { [key: string]: string } = {};
 
     if (!formData.email) validationErrors.email = "Email is required";
-
     if (!formData.password) validationErrors.password = "Password is required";
 
     if (Object.keys(validationErrors).length > 0) {
-        setErrors(validationErrors);
-        setIsLoading(false);
+      setErrors(validationErrors);
+      setIsLoading(false);
       return;
     }
 
@@ -44,7 +53,6 @@ export default function DoctorLogin() {
         toast.success(res.message);
         router.push('/doctor/dashboard');
       }
-      
     } catch (err: any) {
       const msg = err.message || "Login failed. Please try again.";
       toast.error(msg);

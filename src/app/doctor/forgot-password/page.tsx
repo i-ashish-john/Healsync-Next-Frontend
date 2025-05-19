@@ -24,7 +24,7 @@ export default function ForgotPassword() {
     }
   }, [router, searchParams]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     if (!email) {
       toast.error("Please enter your email");
@@ -37,7 +37,7 @@ export default function ForgotPassword() {
       toast.success("Password reset link sent to your email");
       setSent(true);
     } catch (err) {
-      toast.error(err.message || "Failed to send reset link");
+      toast.error((err instanceof Error ? err.message : "Failed to send reset link"));
     } finally {
       setLoading(false);
     }

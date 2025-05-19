@@ -1,7 +1,10 @@
+"use client";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import {ThemeProvider} from "../context/ThemeContext"
+
+import { Provider } from 'react-redux';
 
 import { ReactNode } from "react";
 // builded after dashboard
@@ -9,6 +12,7 @@ import { Inter } from "next/font/google"
 const inter = Inter({ subsets: ["latin"] })
 
 import { Toaster } from 'react-hot-toast';
+import store from "@/store/patient/authStore";
 
 
 // const geistMono = Geist_Mono({
@@ -23,14 +27,12 @@ import { Toaster } from 'react-hot-toast';
 
 
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white transition-colors duration-300`}>
-        
-      <Toaster position="top-center" />
-       <ThemeProvider>{children}</ThemeProvider>
-      </body>
-    </html>
+    <Provider store={store}>
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    </Provider>
   );
 }
