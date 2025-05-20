@@ -19,20 +19,30 @@ export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => 
     console.log('Login response:<<<<<<<<------', data);
 
     if (!data.role) {
-      console.warn('Role missing in response');  // Warn if role is absent
+      console.warn('Role missing in response');
     }
 
-    store.dispatch(setAuthData({ 
-      accessToken: data.accessToken,
-      user: {
+    const userData = {
         id: data.id,
-        username: data.username,
+        name: data.username, 
         email: data.email,
         role: data.role,
-      },
+        blocked:data.blocked
+      };
+
+    localStorage.setItem('Patient-accessToken', data.accessToken);
+                                                // saved to localstorage
+    localStorage.setItem('Patient-data', JSON.stringify(userData));
+
+
+    store.dispatch(setAuthData({
+      accessToken: data.accessToken,
+      user: userData,
     }));
-    console.log('Redux state:', store.getState());  // Debug state
+
+    console.log('Redux state after login:', store.getState());
     return response.data;
+
   } catch (error: any) {
     console.log(error.response?.data);
     throw new Error(error.response?.data?.message || 'Login failed');
@@ -41,11 +51,24 @@ export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => 
 
 export const logoutUser = async (): Promise<void> => {
   try {
-    await axiosInstance.post('/auth/logout');
+    const accessToken = store.getState().auth.accessToken || localStorage.getItem('accessToken');
+    if (!accessToken) {
+      throw new Error('No access token found');
+    }
+
+    await axiosInstance.post('/auth/logout', {}, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
     store.dispatch(clearAuthData());
+    localStorage.removeItem('Patient-accessToken');
+    localStorage.removeItem('Patient-data');
+
   } catch (error: any) {
     console.error('Logout error:', error);
-    store.dispatch(clearAuthData());    
+    store.dispatch(clearAuthData());
+    localStorage.removeItem('accessToken');
   }
 };
 

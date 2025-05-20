@@ -61,30 +61,15 @@ export const resendOtp = async (email: string): Promise<OtpResponse> => {
     throw new Error(error.response?.data?.message || 'Failed to resend OTP');
   }
 };
-
+// doctorService.ts
 export const loginDoctor = async (loginData: LoginData): Promise<AuthResponse> => {
   try {
     const response = await axiosInstance.post('/doctor/login', loginData);
     const { success, message, data, accessToken } = response.data;
-    
-    if (!success) {
-      throw new Error(message);
-    }
-    
-    if (data.role !== 'doctor') {
-      throw new Error('Invalid account type. Please use a doctor account.');
-    }
-    
-    store.dispatch(setAuthData({
-      user: {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        role: data.role
-      },
-      accessToken,
-    }));
-    
+    if (!success) throw new Error(message);
+    if (data.role !== 'doctor') throw new Error('Invalid account type.');
+    store.dispatch(setAuthData({ user: { id: data.id, name: data.name, email: data.email, role: data.role }, accessToken }));
+    localStorage.setItem('accessToken', accessToken); // Add this
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Login failed');
@@ -127,7 +112,7 @@ export const resetPassword = async (
 
 export const getCurrentDoctor = async () => {
   try {
-    const response = await axiosInstance.get('/doctor/auth/me');
+    const response = await axiosInstance.get('/me');
     
     if (response.data.success && response.data.data) {
       const userData = response.data.data;
@@ -168,4 +153,11 @@ export const isAuthenticated = (): boolean => {
 export const isDoctor = (): boolean => {
   const state = store.getState();
   return state.auth.isAuthenticated && state.auth.user?.role === 'doctor';
+};
+//temporary 
+//calling patients in dashboard 
+export const getAllPatients = async () => {
+  const resp = await axiosInstance.get('/doctor/patients');
+  if (!resp.data.success) throw new Error('Failed to load patients');
+  return resp.data.data as Array<{ _id: string; email: string; name: string; blocked: boolean }>;
 };

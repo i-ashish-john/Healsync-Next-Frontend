@@ -16,6 +16,7 @@ export interface LoginData {
   email: string;
   password: string;
   role?: string;
+  blocked:boolean;
 }
 
 export interface UserData {
@@ -50,8 +51,10 @@ export interface AuthResponse {
     name: string;
     email: string;
     role: string;      // ← make sure role is here
+    blocked:boolean;
+    accessToken: string;  
   };
-  accessToken: string;
+  // accessToken: string;
 }
 
 export interface ApiError {

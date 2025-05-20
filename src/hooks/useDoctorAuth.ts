@@ -1,62 +1,54 @@
-'use client';
+// import { useEffect, useState } from 'react';
+// import { useRouter } from 'next/router'; // Or your routing library
+// import axiosInstance from '../services/doctor/InstanceDoctorService';
 
-import { useState, useEffect } from 'react';
+// export default function useDoctorAuth() {
+//   const [loading, setLoading] = useState(true);
+//   const router = useRouter();
+
+//   useEffect(() => {
+//     const token = localStorage.getItem('accessToken');
+//     if (!token) {
+//       router.replace('/doctor/login');
+//       setLoading(false);
+//       return;
+//     }
+
+//     axiosInstance
+//       .get('/doctors/me') // Your endpoint to fetch doctor data
+//       .then((res) => {
+//         if (!res.data.success || res.data.role !== 'doctor') {
+//           localStorage.removeItem('accessToken'); // Clear invalid token
+//           router.replace('/doctor/login');
+//         }
+//       })
+//       .catch(() => {
+//         localStorage.removeItem('accessToken'); // Clear on error
+//         router.replace('/doctor/login');
+//       })
+//       .finally(() => setLoading(false));
+//   }, [router]);
+
+//   return { loading };
+// }
+
 import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../store/doctor/DoctorAuthStore';
-import { selectIsAuthenticated, selectUserRole } from '../store/doctor/DoctorAuthSlice';
-import { getCurrentDoctor } from '../services/doctor/doctorService';
+import { useState, useEffect } from 'react';
 
-export function useDoctorAuth(redirectTo = '/doctor/login') {
+export function useDoctorAuth() {
   const router = useRouter();
-  const isAuthenticated = useSelector((s: RootState) => selectIsAuthenticated(s));
-  const userRole = useSelector((s: RootState) => selectUserRole(s));
-  const user = useSelector((s: RootState) => s.auth.user);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      setLoading(true);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      router.replace('/doctor/login');
+    } else {
+      setIsAuthenticated(true); // Simplified; add real auth check if needed
+    }
+    setLoading(false);
+  }, [router]);
 
-      // Check persisted state in local storage first
-      const storedToken = localStorage.getItem('accessToken');
-      const storedUser = localStorage.getItem('user');
-      if (storedToken && storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser.role === 'doctor') {
-          setLoading(false);
-          return; // User is authenticated and a doctor, no redirect needed
-        }
-      }
-
-      // If not authenticated in Redux, redirect to login
-      if (!isAuthenticated) {
-        router.replace(redirectTo);
-        setLoading(false);
-        return;
-      }
-
-      // If authenticated in Redux, verify the role by fetching current doctor data
-      try {
-        await getCurrentDoctor();
-        const updatedRole = selectUserRole(store.getState());
-
-        if (updatedRole !== 'doctor') {
-          router.replace(redirectTo);
-        }
-      } catch (error) {
-        console.error('Error verifying auth:', error);
-        // Only redirect if there's no persisted state
-        if (!storedToken || !storedUser) {
-          router.replace(redirectTo);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verifyAuth();
-  }, [isAuthenticated, router, redirectTo]);
-
-  return { loading, isAuthenticated, user };
+  return { loading, isAuthenticated };
 }
