@@ -1,7 +1,7 @@
 import axiosInstance from './InstanceDoctorService';
 import { LoginData, SignupData, AuthResponse, OtpResponse } from '../../types/index';
 import store from '../../store/doctor/DoctorAuthStore';
-import { setAuthData, clearAuthData } from '../../store/doctor/DoctorAuthSlice';
+import { setAuthData, clearAuthData, DoctorUser } from '../../store/doctor/DoctorAuthSlice';
 
 export const signupDoctor = async (doctorData: SignupData): Promise<AuthResponse> => {
   try {
@@ -43,6 +43,7 @@ export const verifyOtp = async (email: string, otp: string): Promise<AuthRespons
           name: data.name,
           email: data.email,
           role: data.role || 'doctor',
+          blocked: false
         },
         accessToken: response.data.accessToken,
       }));
@@ -61,18 +62,38 @@ export const resendOtp = async (email: string): Promise<OtpResponse> => {
     throw new Error(error.response?.data?.message || 'Failed to resend OTP');
   }
 };
-// doctorService.ts
+
 export const loginDoctor = async (loginData: LoginData): Promise<AuthResponse> => {
   try {
-    const response = await axiosInstance.post('/doctor/login', loginData);
-    const { success, message, data, accessToken } = response.data;
-    if (!success) throw new Error(message);
+    const resp = await axiosInstance.post('/doctor/login', loginData);
+    const { success, data, accessToken } = resp.data;
+
+    if (!success || !accessToken) throw new Error(resp.data.message);
     if (data.role !== 'doctor') throw new Error('Invalid account type.');
-    store.dispatch(setAuthData({ user: { id: data.id, name: data.name, email: data.email, role: data.role }, accessToken }));
-    localStorage.setItem('accessToken', accessToken); // Add this
-    return response.data;
+    if (data.blocked) {
+      store.dispatch(clearAuthData()); // Clear auth state if blocked
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      throw new Error('You are blocked by admin');
+    }
+
+    store.dispatch(
+      setAuthData({
+        user: {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          blocked: false,
+        },
+        accessToken,
+      })
+    );
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('user', JSON.stringify(data));
+    return resp.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Login failed');
+    throw new Error(error.response?.data?.message || 'Doctor login failed');
   }
 };
 
@@ -80,9 +101,11 @@ export const logoutDoctor = async (): Promise<void> => {
   try {
     await axiosInstance.post('/doctor/logout');
     store.dispatch(clearAuthData());
+    localStorage.removeItem('accessToken');
   } catch (error: any) {
     console.error('Logout error:', error);
     store.dispatch(clearAuthData());
+    localStorage.removeItem('accessToken');
   }
 };
 
@@ -110,41 +133,17 @@ export const resetPassword = async (
   }
 };
 
-export const getCurrentDoctor = async () => {
+export const getCurrentDoctor = async (): Promise<DoctorUser> => {
   try {
-    const response = await axiosInstance.get('/me');
-    
-    if (response.data.success && response.data.data) {
-      const userData = response.data.data;
-      store.dispatch(setAuthData({
-        user: {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role || 'doctor'
-        },
-        accessToken: store.getState().auth.accessToken || localStorage.getItem('accessToken') || '',
-      }));
-      return {
-        success: true,
-        data: {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role || 'doctor',
-          createdAt: userData.createdAt,
-        },
-      };
-    }
-    
-    throw new Error('Failed to fetch doctor data');
-  } catch (error) {
-    // Don't clear the auth state here; preserve existing state
-    console.error('Error fetching current doctor:', error);
-    throw error;
+    const resp = await axiosInstance.get('/doctor/me');
+    if (!resp.data.success) throw new Error('Not authenticated');
+    const doctor = resp.data.data;
+    if (doctor.blocked) throw new Error('blocked'); // Throw error if blocked
+    return doctor;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Not authenticated');
   }
 };
-
 export const isAuthenticated = (): boolean => {
   const state = store.getState();
   return state.auth.isAuthenticated;

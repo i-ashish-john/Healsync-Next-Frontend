@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { loginDoctor } from "../../../services/doctor/doctorService";
-import { useSelector } from "react-redux";
-import { RootState } from "../../../store/doctor/DoctorAuthStore";
+import { loginDoctor } from "@/services/doctor/doctorService";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "@/store/doctor/DoctorAuthStore";
+import { clearAuthData } from "@/store/doctor/DoctorAuthSlice";
 
 export default function DoctorLogin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const [formData, setFormData] = useState({
     email: "",
@@ -19,13 +22,30 @@ export default function DoctorLogin() {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showBlockedMessage, setShowBlockedMessage] = useState(false);
+  const [authCheckLoading, setAuthCheckLoading] = useState(true);
 
-  // Redirect if already authenticated
+  // Clear auth data and handle blocked status on initial load
   useEffect(() => {
-    if (isAuthenticated && user?.role === 'doctor') {
+    const blocked = searchParams.get('blocked');
+    console.log('Blocked param:', blocked); // Debug log
+    if (blocked === 'true') {
+      dispatch(clearAuthData());
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      setShowBlockedMessage(true);
+    }
+    setAuthCheckLoading(false);
+  }, [searchParams, dispatch]);
+
+  // Redirect if authenticated, but only after auth check is complete and not blocked
+  useEffect(() => {
+    if (authCheckLoading) return;
+    if (isAuthenticated && user?.role === 'doctor' && !showBlockedMessage) {
+      console.log('Redirecting to dashboard'); // Debug log
       router.push('/doctor/dashboard');
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router, showBlockedMessage, authCheckLoading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,17 +70,42 @@ export default function DoctorLogin() {
     try {
       const res = await loginDoctor(formData);
       if (res.success) {
-        toast.success(res.message);
+        toast.success(res.message, {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored",
+        });
         router.push('/doctor/dashboard');
       }
     } catch (err: any) {
       const msg = err.message || "Login failed. Please try again.";
-      toast.error(msg);
-      setErrors({ form: msg });
+      if (msg.includes('blocked')) {
+        dispatch(clearAuthData()); // Clear auth state on blocked error
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        setShowBlockedMessage(true);
+        setErrors({ form: "You are blocked by admin." }); // Show blocked message in form
+        router.replace('/doctor/login?blocked=true');
+      } else {
+        toast.error(msg, {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored",
+        });
+        setErrors({ form: msg });
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (authCheckLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -94,6 +139,12 @@ export default function DoctorLogin() {
             {errors.form && (
               <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                 {errors.form}
+              </div>
+            )}
+
+            {showBlockedMessage && !errors.form && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                You are blocked by admin.
               </div>
             )}
 
@@ -177,7 +228,7 @@ export default function DoctorLogin() {
           </div>
         </div>
       </div>
-      <ToastContainer position="top-center" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
     </>
   );
 }

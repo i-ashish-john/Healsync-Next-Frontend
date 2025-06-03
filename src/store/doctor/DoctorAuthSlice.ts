@@ -5,6 +5,7 @@ export interface DoctorUser {
   name: string;
   email: string;
   role: 'doctor' | 'admin';
+  blocked:boolean;
 }
 
 interface AuthState {

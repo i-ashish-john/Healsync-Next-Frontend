@@ -1,18 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loginAdmin } from '../../../services/admin/adminService';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 export default function AdminLogin() {
   const router = useRouter();
+  const { loading, isAuthenticated } = useAdminAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.push('/admin/AdminDashboard');
+    }
+  }, [loading, isAuthenticated, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,15 +33,31 @@ export default function AdminLogin() {
     try {
       const res = await loginAdmin(formData);
       if (res.success) {
-        toast.success(res.message);
+        toast.success(res.message, {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored",
+        });
         router.push('/admin/AdminDashboard');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Admin login failed');
+      toast.error(error.message || 'Admin login failed', {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -95,7 +120,7 @@ export default function AdminLogin() {
         </form>
       </div>
 
-      <ToastContainer position="top-center" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
     </div>
   );
 }

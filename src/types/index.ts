@@ -25,7 +25,13 @@ export interface UserData {
   email: string;
   role?: string;
   createdAt?: string;
-  
+}
+
+export interface ProfileData extends UserData {
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  address?: string;
+  profilePicture?: string;
 }
 export interface DashboardItem {
   id: number;

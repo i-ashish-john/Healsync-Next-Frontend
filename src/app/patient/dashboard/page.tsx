@@ -1,16 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ProtectedRoute from "../../../components/ProtectedRoute";
-import { getCurrentUser, logoutUser } from "../../../services/patient/authServices";
+import ProtectedRoute from "../../../components/patient/Route/ProtectedRoute";
+import { logoutUser } from "../../../services/patient/authServices";
 import { clearAuthData } from "../../../store/patient/authSlice";
 import store from "../../../store/patient/authStore";
 import Link from "next/link";
-import { Bell, Check, Calendar, User, Home, Clock, FileText, Activity, LogOut, Settings, ChevronDown } from "lucide-react";
+import { Bell, Calendar, User, Home, Clock, FileText, Activity, LogOut, Settings, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
+import { getCurrentUser } from "../../../services/patient/authServices"; // Add this import
 
 export default function Dashboard() {
   const [userName, setUserName] = useState("J");
+  const [userId, setUserId] = useState<string | null>(null); // Add state for user ID
   const [unreadNotifications, setUnreadNotifications] = useState(3);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const router = useRouter();
@@ -31,29 +33,6 @@ export default function Dashboard() {
     { name: "Vitamin D", dosage: "1000 IU", frequency: "Once daily", remaining: 30 },
   ];
 
-  useEffect(() => {
-    const checkUserStatus = async () => {
-      try {
-        const response = await getCurrentUser();
-        if (response.success && response.data.blocked) {
-          toast.error('Your account has been blocked by the admin.');
-          await logoutUser();
-          store.dispatch(clearAuthData());
-          router.replace("/patient/login");
-        }
-      } catch (error) {
-        console.error('Error checking user status:', error);
-        await logoutUser();
-        store.dispatch(clearAuthData());
-        router.replace("/patient/login");
-      }
-    };
-
-    checkUserStatus();
-    const interval = setInterval(checkUserStatus, 30000);
-    return () => clearInterval(interval);
-  }, [router]);
-
   const toggleProfileDropdown = () => setIsProfileDropdownOpen(!isProfileDropdownOpen);
 
   const handleLogout = async () => {
@@ -69,6 +48,19 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await getCurrentUser();
+        if (response.success) {
+          setUserId(response.data.userId);
+          setUserName(response.data.username?.charAt(0).toUpperCase() || "J");
+        }
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
+    fetchUser();
+
     const handleClickOutside = (event: MouseEvent) => {
       if (isProfileDropdownOpen && !(event.target as HTMLElement).closest("#profile-dropdown-container")) {
         setIsProfileDropdownOpen(false);
@@ -91,13 +83,13 @@ export default function Dashboard() {
                 <span className="text-xl font-bold text-zinc-900 dark:text-white group-hover:text-purple-600 transition-colors duration-300">HealSync</span>
               </Link>
               <nav className="flex items-center space-x-4">
-                <Link href="/dashboard" className="flex items-center px-3 py-2 text-sm font-medium text-gray-900 rounded-md bg-gray-100 hover:bg-purple-100 transition-colors duration-200">
+                <Link href="/patient/dashboard" className="flex items-center px-3 py-2 text-sm font-medium text-gray-900 rounded-md bg-gray-100 hover:bg-purple-100 transition-colors duration-200">
                   <Home className="h-4 w-4 mr-1" /> Dashboard
                 </Link>
-                <Link href="/appointments" className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200">
+                <Link href="/patient/appointments" className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200">
                   <Calendar className="h-4 w-4 mr-1" /> Appointments
                 </Link>
-                <Link href="/doctors" className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200">
+                <Link href="/patient/doctors" className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200">
                   <User className="h-4 w-4 mr-1" /> Doctors
                 </Link>
               </nav>
@@ -116,10 +108,10 @@ export default function Dashboard() {
                 </button>
                 {isProfileDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                    <Link href="/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                    <Link href={`/patient/${userId}/profile/`} className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
                       <User className="h-4 w-4 mr-2" /> My Profile
                     </Link>
-                    <Link href="/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                    <Link href="/patient/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
                       <Settings className="h-4 w-4 mr-2" /> Settings
                     </Link>
                     <hr className="my-1 border-gray-200" />
@@ -141,7 +133,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-semibold text-gray-800 flex items-center">
                   <Calendar className="h-5 w-5 mr-2 text-purple-600" /> Upcoming Appointments
                 </h2>
-                <Link href="/appointments" className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200">View All</Link>
+                <Link href="/patient/appointments" className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200">View All</Link>
               </div>
               <div className="space-y-4">
                 {upcomingAppointments.map((apt) => (
@@ -169,7 +161,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-semibold text-gray-800 flex items-center">
                   <Activity className="h-5 w-5 mr-2 text-purple-600" /> Health Metrics
                 </h2>
-                <Link href="/health" className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200">View History</Link>
+                <Link href="/patient/health" className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200">View History</Link>
               </div>
               <div className="space-y-4">
                 {healthMetrics.map((metric, index) => (
@@ -194,7 +186,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-semibold text-gray-800 flex items-center">
                   <FileText className="h-5 w-5 mr-2 text-purple-600" /> Current Medications
                 </h2>
-                <Link href="/medications" className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200">View All</Link>
+                <Link href="/patient/medications" className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200">View All</Link>
               </div>
               <div className="space-y-4">
                 {medications.map((med, index) => (

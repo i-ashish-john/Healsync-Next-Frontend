@@ -1,22 +1,17 @@
-// app/admin/AdminDashboard/page.tsx
 "use client";
 
 import { useState, useEffect, useRef, JSX } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast, ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
-import { useAdminAuth } from '../../../hooks/useAdminAuth';
+import { useAdminAuth } from '@/hooks/useAdminAuth'; // Correct hook
 import {
   getAllPatients,
   getAllDoctors,
   toggleBlockUser,
   logoutAdmin,
-} from '../../../services/admin/adminService';
+} from '@/services/admin/adminService';
 import { User, LogOut, Users, Stethoscope } from 'lucide-react';
-
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../../store/admin/adminStore';
-import { selectIsAdmin } from '../../../store/admin/adminSlice';
 
 interface UserRow {
   _id: string;
@@ -27,37 +22,32 @@ interface UserRow {
 }
 
 export default function AdminDashboard() {
-  const { loading, isAuthenticated, user } = useAdminAuth();
+  const { loading, isAuthenticated, user } = useAdminAuth(); // Use useAdminAuth
   const router = useRouter();
   const [patients, setPatients] = useState<UserRow[]>([]);
   const [doctors, setDoctors] = useState<UserRow[]>([]);
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'patients' | 'doctors'>('patients');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const isAdmin = useSelector((state: RootState) => selectIsAdmin(state));
 
-  // 1️⃣ Redirect guard
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace('/admin/AdminLogin');
-    }
-  }, [loading, isAuthenticated, router]);
-
-  // 2️⃣ Data fetch when authenticated
+  // Fetch data when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();
     }
   }, [isAuthenticated]);
 
-   const fetchData = async () => {  // thiss thing changed
+  const fetchData = async () => {
     try {
       setPatients(await getAllPatients());
       setDoctors(await getAllDoctors());
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message, {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
     }
   };
 
@@ -76,10 +66,18 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await logoutAdmin();
-      toast.success('Logged out successfully');
+      toast.success('Logged out successfully', {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
       router.replace('/admin/AdminLogin');
     } catch {
-      toast.error('Logout failed');
+      toast.error('Logout failed', {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
     }
   };
 
@@ -90,14 +88,21 @@ export default function AdminDashboard() {
   ) => {
     try {
       await toggleBlockUser(type, id, blocked);
-      toast.success(`${blocked ? 'Unblocked' : 'Blocked'} successfully`);
+      toast.success(`User ${blocked ? 'unblocked' : 'blocked'} successfully`, {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
       fetchData();
-    } catch {
-      toast.error('Failed to update user status');
+    } catch (error: any) {
+      toast.error(error.message || `Failed to ${blocked ? 'unblock' : 'block'} user`, {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
     }
   };
 
-  // 3️⃣ Show spinner while loading auth or redirecting
   if (loading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -111,7 +116,7 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <div className={`bg-purple-500 text-white ${isSidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 ease-in-out`}>
         <div className="p-4 flex items-center justify-center">
-          <h1 className="text-xl font-bold">{ isSidebarOpen ? 'HealSync Admin' : 'HS' }</h1>
+          <h1 className="text-xl font-bold">{isSidebarOpen ? 'HealSync Admin' : 'HS'}</h1>
         </div>
         <div className="mt-6">
           <SidebarItem
@@ -137,7 +142,6 @@ export default function AdminDashboard() {
         <header className="bg-white shadow-sm z-10">
           <div className="px-4 py-3 flex items-center justify-between">
             <button onClick={toggleSidebar} className="text-gray-500 focus:outline-none">
-              {/* Hamburger */}
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
@@ -147,14 +151,9 @@ export default function AdminDashboard() {
                 <div className="h-8 w-8 rounded-full bg-purple-200 flex items-center justify-center">
                   <User size={16} className="text-purple-500" />
                 </div>
-
- {/* safe-guard the split so it never runs on undefined */}
-{/* {user && (
-  <span className="ml-2 font-medium">
-    {user.name.split(' ')[0]}
-  </span>
-)} */}
-
+                {user?.name && (
+                  <span className="ml-2 font-medium">{user.name.split(' ')[0]}</span>
+                )}
               </button>
               {isProfileDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
@@ -187,7 +186,7 @@ export default function AdminDashboard() {
                   <td className="py-4 px-6">
                     <button
                       onClick={() => handleToggleBlock('patients', patient._id, patient.blocked)}
-                      className={`px-4 py-2 rounded text-white ${patient.blocked ? 'bg-green-500' : 'bg-red-500'}`}
+                      className={`px-4 py-2 rounded text-white ${patient.blocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
                     >
                       {patient.blocked ? 'Unblock' : 'Block'}
                     </button>
@@ -209,7 +208,7 @@ export default function AdminDashboard() {
                   <td className="py-4 px-6">
                     <button
                       onClick={() => handleToggleBlock('doctors', doctor._id, doctor.blocked)}
-                      className={`px-4 py-2 rounded text-white ${doctor.blocked ? 'bg-green-500' : 'bg-red-500'}`}
+                      className={`px-4 py-2 rounded text-white ${doctor.blocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
                     >
                       {doctor.blocked ? 'Unblock' : 'Block'}
                     </button>
@@ -221,12 +220,11 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      <ToastContainer position="top-center" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
     </div>
   );
 }
 
-// Simple reusable table component
 function ListTable<T>({
   items,
   columns,
@@ -256,9 +254,7 @@ interface SidebarItemProps {
   onClick: () => void;
 }
 
-function SidebarItem({
-  icon, label, isActive, isCollapsed, onClick,
-}: SidebarItemProps) {
+function SidebarItem({icon, label, isActive, isCollapsed, onClick}: SidebarItemProps) {
   return (
     <button
       onClick={onClick}

@@ -18,22 +18,24 @@ export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => 
     const { data } = response.data;
     console.log('Login response:<<<<<<<<------', data);
 
+    if (!response.data.success && response.data.message === 'You are blocked by admin') {
+      throw new Error('blocked');
+    }
+
     if (!data.role) {
       console.warn('Role missing in response');
     }
 
     const userData = {
-        id: data.id,
-        name: data.username, 
-        email: data.email,
-        role: data.role,
-        blocked:data.blocked
-      };
+      id: data.id,
+      name: data.username,
+      email: data.email,
+      role: data.role,
+      blocked: data.blocked
+    };
 
     localStorage.setItem('Patient-accessToken', data.accessToken);
-                                                // saved to localstorage
     localStorage.setItem('Patient-data', JSON.stringify(userData));
-
 
     store.dispatch(setAuthData({
       accessToken: data.accessToken,
@@ -42,9 +44,11 @@ export const loginUser = async (loginData: LoginData): Promise<AuthResponse> => 
 
     console.log('Redux state after login:', store.getState());
     return response.data;
-
   } catch (error: any) {
     console.log(error.response?.data);
+    if (error.message === 'blocked') {
+      throw new Error('blocked');
+    }
     throw new Error(error.response?.data?.message || 'Login failed');
   }
 };
@@ -73,8 +77,40 @@ export const logoutUser = async (): Promise<void> => {
 };
 
 export const getCurrentUser = async () => {
-  const response = await axiosInstance.get('/auth/me');
-  return response.data;
+  try {
+    const response = await axiosInstance.get('/auth/me');
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 403 && error.response?.data?.message === 'You are blocked by admin') {
+      throw new Error('blocked');
+    }
+    throw new Error(error.response?.data?.message || 'Failed to fetch current user');
+  }
+};
+
+export const checkUserStatus = async () => {
+  try {
+    const response = await axiosInstance.get('/auth/me');
+    console.log('checkUserStatus response:', response.data);
+
+    // Check if the response indicates the user is blocked
+    if (response.data?.data?.blocked === true) {
+      throw new Error('blocked');
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.log('checkUserStatus error:', error.response?.data);
+    // Handle blocked user scenarios
+    if (
+      error.response?.status === 403 && 
+      error.response?.data?.message === 'You are blocked by admin'
+    ) {
+      throw new Error('blocked');
+    }
+    // Re-throw other errors with a generic message
+    throw new Error(error.response?.data?.message || 'Failed to check user status');
+  }
 };
 
 export const isAuthenticated = (): boolean => {

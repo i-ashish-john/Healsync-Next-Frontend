@@ -24,20 +24,20 @@ interface UserRow {
 
 export const loginAdmin = async (loginData: LoginData): Promise<AuthResponse> => {
   try {
-  const resp = await axiosInstance.post('/admin/login', loginData);
-  const { success, data, accessToken } = resp.data;
+    const resp = await axiosInstance.post('/admin/login', loginData);
+    const { success, data, accessToken } = resp.data;
 
-  if (!success || !accessToken) throw new Error(resp.data.message);
-  store.dispatch(
-    setAuthData({ user: { id: data.id, name: data.name, email: data.email, role: data.role }, accessToken })
-  );
+    if (!success || !accessToken) throw new Error(resp.data.message);
+    store.dispatch(
+      setAuthData({ user: { id: data.id, name: data.name, email: data.email, role: data.role }, accessToken })
+    );
+    // Store the token in localStorage for persistence
+    localStorage.setItem('accessToken', accessToken);
     return resp.data;
-    
-  }  catch (error: any) {
+  } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Admin login failed');
   }
 };
-
 
 export const logoutAdmin = async (): Promise<void> => {
   try {
@@ -85,15 +85,16 @@ export const getAllDoctors = async (): Promise<UserRow[]> => {
     throw new Error(error.message || 'Failed to fetch doctors');
   }
 };
+// Fixed toggleBlockUser to handle success and error cases properly
 export const toggleBlockUser = async (type: 'patients' | 'doctors', id: string, blocked: boolean): Promise<void> => {
   try {
-    const response = await axiosInstance.put(`/admin/${type}/${id}/${blocked ? 'unblock' : 'block'}`);
-    console.log('Toggle block user response:', response.data); // Debug log
+    const action = blocked ? 'unblock' : 'block';
+    const response = await axiosInstance.put(`/admin/${type}/${id}/${action}`);
     if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to update user status');
+      throw new Error(response.data.message || `Failed to ${action} user`);
     }
   } catch (error: any) {
-    console.error('Error toggling block status:', error.message);
-    throw new Error(error.message || 'Failed to update user status');
+    const message = error.response?.data?.message || `Failed to ${blocked ? 'unblock' : 'block'} user`;
+    throw new Error(message);
   }
 };
